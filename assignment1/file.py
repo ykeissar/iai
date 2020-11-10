@@ -1,5 +1,6 @@
 import sys
 from Agents import Agent
+from graphTools import getAbstract
 
 global blocked
 blocked = False
@@ -34,20 +35,21 @@ def main():
                     "w":w,
                     "blocked":False
                 }
-        )
+        )    
     print("please enter number of agents:")
     num_of_agents = 1 #int(input())
     print ("please enter agents details: ")  #list of size numOfAgents of lists of 2 items [type of agent, initial position]
     agents_details =["s V1"] #input().split(',')
     agentDetails = list(map(lambda x: x.split(' '), agents_details))
 
+    getAbstract(graph,'V1')
+    
     agentsList = list()
     for i in range(0,num_of_agents):
         agentsList.append(Agent(agentDetails[i][0], agentDetails[i][1],len(graph)))
     # main loop
     while deadLine>0 and totalNumOfPpl>0 and not allTerminated(agentsList):
         for i in agentsList:
-            #print(i)
             if i.terminated:
                 continue
             elif i.stepsLeft > 0:
@@ -70,7 +72,7 @@ def main():
                     i.stepsLeft = getEdgeWeight(graph,prevVer,i.currentPosition)
                 i.numOfActions +=1
         deadLine -= 1
-        print(i)				
+    #    print(i)				
 
 def allTerminated(agentsList):
     for i in agentsList:
@@ -96,27 +98,19 @@ def saboAct(s,graph):
     if s.waiting > 0:
         s.waiting -= 1
     else:
-        #print(graph[s.currentPosition]['e'])
         graph[s.currentPosition]['e'].sort(key=sortFunc)
-        #print("SORTED NEIG")
-        #print(graph[s.currentPosition]['e'])
         e = graph[s.currentPosition]['e'][0]
         if e['w'] == sys.maxsize :  #there are edges to act on
             s.terminated = True
-            print("TERMIN")
         elif blocked :			#just finished blocking (1 time stemp)
-            print("BLOCKED=True")
             blocked = False
             s.stepsLeft = e['w']
             s.waiting = len(graph)
             s.currentPosition = e['v']
         else:					#blocking edge
-            print("BLOCKED=false")
             blocked = True
             graph[s.currentPosition]['e'][0]['w'] = sys.maxsize
             graph[s.currentPosition]['e'][0]['blocked'] = True
-            print(graph)
-            print("\n")
         s.numOfActions +=1
 def sortFunc(neig):
     return neig['w']

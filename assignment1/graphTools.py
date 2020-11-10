@@ -8,7 +8,7 @@ def minDistance(graph, dist, sptSet):
     # Search not nearest vertex not in the  
     # shortest path tree 
     min_index = ""
-    print(dist,sptSet)
+    #print(dist,sptSet)
     for key in graph: 
         if dist[key] <= min and sptSet[key] == False: 
             min = dist[key] 
@@ -43,6 +43,7 @@ def dijkstra(graph, src):
             if sptSet[e['v']] == False and dist[e['v']] > dist[u] + e['w']: 
                 dist[e['v']] = dist[u] + e['w']
                 prevVer[e['v']] = u
+    #print(dist)
 
     return dist,prevVer
 
@@ -58,3 +59,23 @@ def getPath(prevVer,src,dst):
         return [src,dst]
     else:
         return getPath(prevVer,src,prevVer[dst]) + [dst]
+
+def getAbstract(graph,currPos):
+    vTag = []
+    newGraph = {}
+    for key in graph:
+        if graph[key]['p']>0 or key == currPos:
+            vTag.append(key)
+            newGraph[key]={
+                "p": graph[key]['p'],
+                "e": []
+            }
+    for key in newGraph:
+        dist = dijkstra(graph,key)[0]
+        for v in vTag:
+            if not (v == key or ({'v':v,'w':dist[v]} in newGraph[key]['e'])):
+                newGraph[key]['e'].append({
+                    'v':v,
+                    'w':dist[v]
+                })
+    return newGraph

@@ -39,6 +39,4 @@ class Agent:
         else: 
             return ""
 
-    # def __saboteurStep(self,graph):
-    #     if numOfActions%len(graph):
     

@@ -67,12 +67,15 @@ def main():
                 #finding next vertice to travel
                 prevVer = i.currentPosition
                 i.currentPosition = getNextStep(i,graph)
+                print("CURR ",i.currentPosition,"prev: ",prevVer)
                 if not i.currentPosition:
                     i.terminated = True
                 else:
                     i.stepsLeft = getEdgeWeight(graph,prevVer,i.currentPosition)
                 i.numOfActions +=1
+        print("Agent: ",agentsList[0])
         deadLine -= 1
+    print("Well Done!!! Agent: ",agentsList[0].type,"\nevacuated ",agentsList[0].peopleEvacuated," peopel!")
 
 def allTerminated(agentsList):
     for i in agentsList:

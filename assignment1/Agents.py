@@ -11,7 +11,7 @@ class Agent:
         self.terminated = False
         self.waiting = waiting
         self.strategy = []
-        self.limit = 10000 if type == "as" else limit
+        self.limit = 10000 if type == "A*" else limit
 
     def traverse(self,dest):
         return 0
@@ -46,21 +46,18 @@ class Agent:
         if len(self.strategy) < 2:
             absStrag = astar(getAbstract(graph,self.currentPosition),heur,self.currentPosition,self.limit, self.type is not'greedy')
             self.strategy = deAbstractPath(graph,absStrag)
-            if self.strategy == []:
+            if len(self.strategy) < 2:
                 return ""
             if self.type == 'rta':
                 ret = self.strategy[1]
                 self.strategy = []
                 return ret
-            return self.strategy[1]            
-        else:
-            self.strategy = self.strategy[1:]
-            return self.strategy[0] 
+        self.strategy = self.strategy[1:]
+        return self.strategy[0] 
 
 def deAbstractPath(graph,absPath):
     strategy = [absPath[0]]
     for i in range(len(absPath)-1):
-        
         distList,p = dijkstra(graph,absPath[i])
         distList = {k: v for k,v in sorted(distList.items(), key= lambda item: item[1])}
 

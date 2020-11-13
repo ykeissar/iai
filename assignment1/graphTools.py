@@ -10,7 +10,6 @@ def minDistance(graph, dist, sptSet):
     # Search not nearest vertex not in the  
     # shortest path tree 
     min_index = ""
-    #print(dist,sptSet)
     for key in graph: 
         if dist[key] <= min and sptSet[key] == False: 
             min = dist[key] 
@@ -86,37 +85,33 @@ def astar(problem,h,currPos,limit,useG):
     open = [(h(problem,firstNode),firstNode)] # sorted list - (f(n),Node), sort by f(n)
     heapq.heapify(open)
     closed = []
-    #print("A* PRINT")
-    #print(problem)
     while limit > 0:
         if len(open) == 0:
             return "Failure"
         (_,next) = heapq.heappop(open)
-
         if h(problem,next) == 0:
             retPath = getSol(next)
             return retPath 
+            
         closed.append(next)
         for n in expand(next,problem,useG):
             if n not in closed:
-    #            print("h,g func vals : " , h(problem,n), n.g)
                 heapq.heappush(open,(h(problem,n)+n.g,n))
         limit -= 1
-    #    print(next, open)
 
 def getSol(node):
-    path = []
+    path = [node.vertex]
     while node.prevNode is not None:
         path = [node.prevNode.vertex] + path
-    print(path)
+        node =  node.prevNode
     return path
 
 def expand(node,problem,useG):
-    nodesToVisit = [n for n in getNodesWithPeoples(problem) if n not in node.visited]
+    verticesToVisit = [n for n in getNodesWithPeoples(problem) if n not in node.visited and n != node.vertex]
     newNodes = []
-    for next in nodesToVisit:
-        gn = node.g+getEdgeWeigh(graph,node.visited,next) if useG else 0
-        newNode = Node(next,node.visited.append(node.vertex),node,gn)
+    for nextVer in verticesToVisit:
+        gn = node.g+getEdgeWeigh(problem,node.vertex,nextVer) if useG else 0
+        newNode = Node(nextVer,node.visited+[node.vertex],node,gn)
         newNodes.append(newNode)        
     return newNodes
 class Node:
@@ -125,7 +120,12 @@ class Node:
         self.visited = visited
         self.prevNode = prevNode
         self.g = g
-
+    def __repr__(self):
+        return "[[vertex: {0}, visited: {1}, prevNode:{2}, g:{3}]]".format(
+            self.vertex,self.visited,self.prevNode,self.g
+        )
+    def __gt__(self,other):
+        self
 
 def getNodesWithPeoples(graph):
     a = []
@@ -135,7 +135,6 @@ def getNodesWithPeoples(graph):
     return a
 
 def getEdgeWeigh(graph,frm,to):
-    print(graph, frm, to)
     for i in graph[frm]['e']:
         if i['v'] == to:
             return i['w']

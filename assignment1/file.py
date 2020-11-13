@@ -3,6 +3,8 @@ from Agents import Agent
 from graphTools import getAbstract
 
 global blocked
+global L
+L = 10
 blocked = False
 def main():
     f = open("parameters.txt", "r")
@@ -35,18 +37,17 @@ def main():
                     "w":w,
                     "blocked":False
                 }
-        )    
+        )
+    
     print("please enter number of agents:")
     num_of_agents = 1 #int(input())
     print ("please enter agents details: ")  #list of size numOfAgents of lists of 2 items [type of agent, initial position]
-    agents_details =["s V1"] #input().split(',')
+    agents_details =["A* V1"] #input().split(',')
     agentDetails = list(map(lambda x: x.split(' '), agents_details))
-
-    getAbstract(graph,'V1')
-    
+        
     agentsList = list()
     for i in range(0,num_of_agents):
-        agentsList.append(Agent(agentDetails[i][0], agentDetails[i][1],len(graph)))
+        agentsList.append(Agent(agentDetails[i][0], agentDetails[i][1],len(graph),L))
     # main loop
     while deadLine>0 and totalNumOfPpl>0 and not allTerminated(agentsList):
         for i in agentsList:
@@ -72,7 +73,6 @@ def main():
                     i.stepsLeft = getEdgeWeight(graph,prevVer,i.currentPosition)
                 i.numOfActions +=1
         deadLine -= 1
-    #    print(i)				
 
 def allTerminated(agentsList):
     for i in agentsList:
@@ -91,6 +91,8 @@ def getNextStep(agent,graph):
         return agent.humanStep(graph)
     elif agent.type == 'g':
         return agent.greedyStep(graph)
+    else:
+        return agent.getAstarStep(graph)
     return None
 
 def saboAct(s,graph):

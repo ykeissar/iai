@@ -1,16 +1,17 @@
 import sys
-from Agents import Agent
+from Agents import Agent, saboAct
 from graphTools import getAbstract
 
 global blocked
 global L
-L = 10
-blocked = False
+L = 5
+
 def main():
-    f = open("parameters.txt", "r")
+    f = open("parameters2.txt", "r")
     flines = list(map(lambda x: x.replace('\n','').split(),f.readlines()))
     n = int(flines[0][1])
     deadLine = float(flines[1][1])
+    cDeadLine = deadLine
     graph = {}
     j=2
     totalNumOfPpl = 0
@@ -40,21 +41,25 @@ def main():
         )
     
     print("please enter number of agents:")
-    num_of_agents = 1 #int(input())
-    print ("please enter agents details: ")  #list of size numOfAgents of lists of 2 items [type of agent, initial position]
-    agents_details =["A* V1"] #input().split(',')
+    num_of_agents = int(input())
+    print ("please enter agents details: ")
+    agents_details = input().split(',')
     agentDetails = list(map(lambda x: x.split(' '), agents_details))
         
     agentsList = list()
     for i in range(0,num_of_agents):
         agentsList.append(Agent(agentDetails[i][0], agentDetails[i][1],len(graph),L))
     # main loop
+    print("Agents: \n",agentsList)
+    print("Graph: \n",graph)
     while deadLine>0 and totalNumOfPpl>0 and not allTerminated(agentsList):
         for i in agentsList:
             if i.terminated:
                 continue
             elif i.stepsLeft > 0:
                 i.stepsLeft -= 1
+            elif i.calcTime > 0:
+                i.calcTime -= 1
             elif i.type == 's':
                 saboAct(i,graph)
             else:
@@ -63,19 +68,22 @@ def main():
                 totalNumOfPpl -= verPpl
                 i.peopleEvacuated += verPpl
                 graph[i.currentPosition]["p"] = 0
-
+                if totalNumOfPpl == 0:
+                    break
                 #finding next vertice to travel
                 prevVer = i.currentPosition
                 i.currentPosition = getNextStep(i,graph)
-                print("CURR ",i.currentPosition,"prev: ",prevVer)
+                print("Next step: ",i.currentPosition)
                 if not i.currentPosition:
                     i.terminated = True
                 else:
                     i.stepsLeft = getEdgeWeight(graph,prevVer,i.currentPosition)
                 i.numOfActions +=1
-        print("Agent: ",agentsList[0])
         deadLine -= 1
-    print("Well Done!!! Agent: ",agentsList[0].type,"\nevacuated ",agentsList[0].peopleEvacuated," peopel!")
+    feedback = "Well Done!!! Agent: "
+    if agentsList[0].peopleEvacuated == 0:
+        feedback = "Too Bad.. You could've done better, "
+    print(feedback, agentsList[0].type,"\nevacuated ",agentsList[0].peopleEvacuated," people! And it took ",cDeadLine-deadLine," rounds.")
 
 def allTerminated(agentsList):
     for i in agentsList:
@@ -98,26 +106,5 @@ def getNextStep(agent,graph):
         return agent.getAstarStep(graph)
     return None
 
-def saboAct(s,graph):
-    global blocked
-    if s.waiting > 0:
-        s.waiting -= 1
-    else:
-        graph[s.currentPosition]['e'].sort(key=sortFunc)
-        e = graph[s.currentPosition]['e'][0]
-        if e['w'] == sys.maxsize :  #there are edges to act on
-            s.terminated = True
-        elif blocked :			#just finished blocking (1 time stemp)
-            blocked = False
-            s.stepsLeft = e['w']
-            s.waiting = len(graph)
-            s.currentPosition = e['v']
-        else:					#blocking edge
-            blocked = True
-            graph[s.currentPosition]['e'][0]['w'] = sys.maxsize
-            graph[s.currentPosition]['e'][0]['blocked'] = True
-        s.numOfActions +=1
-def sortFunc(neig):
-    return neig['w']
 if __name__ == "__main__":
     main()

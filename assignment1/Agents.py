@@ -1,6 +1,10 @@
 from graphTools import dijkstra,getPath,astar,getAbstract
 from heuristic import heur
 import sys
+global blocked
+blocked = False
+global T
+T = 0
 class Agent:
     def __init__(self,type, currentPosition, waiting,limit):
         self.type = type
@@ -11,7 +15,10 @@ class Agent:
         self.terminated = False
         self.waiting = waiting
         self.strategy = []
-        self.limit = 10000 if type == "A*" else limit
+        self.limit = 10000 if type == "A*" else 5
+        self.calcTime = 0
+        if type == 'greedy':
+            self.limit = 1
 
     def traverse(self,dest):
         return 0
@@ -44,26 +51,50 @@ class Agent:
 
     def getAstarStep(self, graph):# ["v1","v2"]
         if len(self.strategy) < 2:
-            absStrag = astar(getAbstract(graph,self.currentPosition),heur,self.currentPosition,self.limit, self.type is not'greedy')
+            absStrag,exp = astar(getAbstract(graph,self.currentPosition),heur,self.currentPosition,self.limit, self.type)
+            if absStrag is None:
+                print("No Strategy!")
+                return
+            self.calcTime = exp * T
             self.strategy = deAbstractPath(graph,absStrag)
+            print("New Strategy: abs - ",absStrag,", full - ",self.strategy)
             if len(self.strategy) < 2:
                 return ""
-            if self.type == 'rta':
-                ret = self.strategy[1]
-                self.strategy = []
-                return ret
         self.strategy = self.strategy[1:]
+        
         return self.strategy[0] 
 
 def deAbstractPath(graph,absPath):
     strategy = [absPath[0]]
-    for i in range(len(absPath)-1):
-        distList,p = dijkstra(graph,absPath[i])
-        distList = {k: v for k,v in sorted(distList.items(), key= lambda item: item[1])}
+    if strategy is not None:
+        for i in range(len(absPath)-1):
+            distList,p = dijkstra(graph,absPath[i])
+            distList = {k: v for k,v in sorted(distList.items(), key= lambda item: item[1])}
 
-        if len(getPath(p,absPath[i],absPath[i+1])) > 0:
-            strategy = strategy + getPath(p,absPath[i],absPath[i+1])[1:] 
-        else:
-            return []
-
+            if len(getPath(p,absPath[i],absPath[i+1])) > 0:
+                strategy = strategy + getPath(p,absPath[i],absPath[i+1])[1:] 
+            else:
+                return []
     return strategy
+
+def saboAct(s,graph):
+    global blocked
+    if s.waiting > 0:
+        s.waiting -= 1
+    else:
+        graph[s.currentPosition]['e'].sort(key=sortFunc)
+        e = graph[s.currentPosition]['e'][0]
+        if e['w'] == sys.maxsize :  #there are edges to act on
+            s.terminated = True
+        elif blocked :			#just finished blocking (1 time stemp)
+            blocked = False
+            s.stepsLeft = e['w']
+            s.waiting = len(graph)
+            s.currentPosition = e['v']
+        else:					#blocking edge
+            blocked = True
+            graph[s.currentPosition]['e'][0]['w'] = sys.maxsize
+            graph[s.currentPosition]['e'][0]['blocked'] = True
+        s.numOfActions +=1
+def sortFunc(neig):
+    return neig['w']

@@ -1,5 +1,6 @@
 from graphTools import dijkstra,getPath,astar,getAbstract
-from heuristic import heur
+from heuristic import heur, minimaxHeur
+from minimax import minimax
 import sys
 global blocked
 blocked = False
@@ -15,8 +16,9 @@ class Agent:
         self.terminated = False
         self.waiting = waiting
         self.strategy = []
-        self.limit = 10000 if type == "A*" else 5
+        self.limit = 10000 if type == "A*" else limit
         self.calcTime = 0
+        self.otherPos = ''
         if type == 'greedy':
             self.limit = 1
 
@@ -62,7 +64,22 @@ class Agent:
                 return ""
         self.strategy = self.strategy[1:]
         
-        return self.strategy[0] 
+        return self.strategy[0]
+
+    def minimaxStep(self, graph):
+        if len(self.strategy) < 2:
+            self.strategy = minimax(graph,self.currentPosition, self.otherPos ,self.limit, self.type)
+            if self.strategy == None:
+                print("No Strategy!")
+                return
+            # self.calcTime = exp * T
+            print("New Strategy: ",self.strategy)
+            if len(self.strategy) < 2:
+                return ""
+        self.strategy = self.strategy[1:]
+        # print('Next step: ',self.strategy[0])
+        return self.strategy[0]
+
 
 def deAbstractPath(graph,absPath):
     strategy = [absPath[0]]

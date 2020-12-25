@@ -4,10 +4,10 @@ from graphTools import getAbstract
 
 global blocked
 global L
-L = 5
+L = 4
 
 def main():
-    f = open("parameters.txt", "r")
+    f = open("params.txt", "r")
     flines = list(map(lambda x: x.replace('\n','').split(),f.readlines()))
     n = int(flines[0][1])
     deadLine = float(flines[1][1])
@@ -47,11 +47,18 @@ def main():
     agentsList = list()
     for i in range(0,num_of_agents):
         agentsList.append(Agent(agentDetails[i][0], agentDetails[i][1],len(graph),L))
+    agentsList[0].otherPos = agentDetails[1][1]
+    agentsList[1].otherPos = agentDetails[0][1]
+
     # main loop
     print("Agents: \n",agentsList)
     print("Graph: \n",graph)
+    time = 0
     while deadLine>0 and totalNumOfPpl>0 and not allTerminated(agentsList):
-        for i in agentsList:
+        # print('----------------###### time ######----------------',time,'numOfPeople - ',totalNumOfPpl)
+
+        time += 1
+        for index,i in enumerate(agentsList):
             if i.terminated:
                 continue
             elif i.stepsLeft > 0:
@@ -71,17 +78,21 @@ def main():
                 #finding next vertice to travel
                 prevVer = i.currentPosition
                 i.currentPosition = getNextStep(i,graph)
-                print("Next step: ",i.currentPosition)
+
+                # print("Next step: ",i.currminimaxSteptPosition)
                 if not i.currentPosition:
                     i.terminated = True
                 else:
+                    agentsList[1 if index == 0 else 0].otherPos = i.currentPosition
                     i.stepsLeft = getEdgeWeight(graph,prevVer,i.currentPosition)
+                print('Agnet',index,'next step - ',i.currentPosition,', ',i.stepsLeft,'steps left')
+                # print('Graph:\n',graph)
                 i.numOfActions +=1
         deadLine -= 1
-    feedback = "Well Done!!! Agent: "
+    feedback = "Well Done!!! \nAgents:\n"
     if agentsList[0].peopleEvacuated == 0:
         feedback = "Too Bad.. You could've done better, "
-    print(feedback, agentsList[0].type,"\nevacuated ",agentsList[0].peopleEvacuated," people! And it took ",cDeadLine-deadLine," rounds.")
+    print(feedback,'Agent',0,'type',agentsList[0].type,"evacuated ",agentsList[0].peopleEvacuated,'\nAgent',1,'type',agentsList[1].type,"evacuated ",agentsList[1].peopleEvacuated," \nAnd it took ",cDeadLine-deadLine," rounds.")
 
 def allTerminated(agentsList):
     for i in agentsList:
@@ -100,6 +111,8 @@ def getNextStep(agent,graph):
         return agent.humanStep(graph)
     elif agent.type == 'g':
         return agent.greedyStep(graph)
+    elif agent.type[0] == 'm':
+        return agent.minimaxStep(graph)
     else:
         return agent.getAstarStep(graph)
     return None

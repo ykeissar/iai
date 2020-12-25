@@ -1,9 +1,13 @@
-from heuristic import minimaxHeur
+from heuristic import minimaxHeur,getPaths
+import sys 
+
 
 global trace_id
 trace_id=0
+global numOfNodes 
+numOfNodes = 0
 
-def minmax(problem,h,vA,vB,cutoff):
+def minimax(problem,vA,vB,cutoff,gtype):
     global trace_id
     currNodes = [Node(trace_id,vA,vB,None,True)]
     root = currNodes[0]
@@ -28,15 +32,16 @@ def minmax(problem,h,vA,vB,cutoff):
         # printNodes(currNodes)
         cutoff -= 1
     
-    
-    dfs(root,problem,2)
-    # print(len(currNodes))
-    # for i in currNodes:
-    #     print('#####################')
-    #     print(i,minimaxHeur(graph,i))
-    #     print('$$$$$$$')
-
-
+    dfs(root,problem,gtype,-sys.maxsize,sys.maxsize)
+    slist = root.sons
+    lastNode = None
+    while slist != []:
+        for i in slist:
+            if root.scores == i.scores:
+                slist = i.sons
+                lastNode = i
+                break
+    return getPaths(lastNode)[0]
 
     
 class Node:
@@ -48,7 +53,6 @@ class Node:
         self.myTurn = myTurn
         self.scores = (0,0)
         self.sons = []
-        self.color = 'white'
     
     def __repr__(self):
         return "[---({0},{1})---[myVertex: {0}, otherVertex: {1}, prevNode:({2},{3}), myTurn:{4}, score:{5}]]".format(
@@ -68,31 +72,56 @@ def printNodes(nodes):
         print(i,'\n')
 
 def main():
-    graph = {'V1': {'p': 0, 'e': [{'v': 'V2', 'w': 1}, {'v': 'V7', 'w': 1}]}, 'V2': {'p': 0, 'e': [{'v': 'V1', 'w': 1}, {'v': 'V5', 'w': 1}]}, 'V3': {'p': 2, 'e': [{'v': 'V4', 'w': 1}, {'v': 'V6', 'w': 1}]}, 'V4': {'p': 0, 'e': [{'v': 'V5', 'w': 1}, {'v': 'V3', 'w': 1}]}, 'V5': {'p': 2, 'e': [{'v': 'V4', 'w': 1}, {'v': 'V2', 'w': 1}]}, 'V6': {'p': 0, 'e': [{'v': 'V3', 'w': 1}, {'v': 'V7', 'w': 1}]}, 'V7': {'p': 0, 'e': [{'v': 'V6', 'w': 1}, {'v': 'V1', 'w': 1}]}}
+    graph1 = {'V1': {'p': 0, 'e': [{'v': 'V2', 'w': 1}, {'v': 'V3', 'w': 4}]}, 'V2': {'p': 1, 'e': [{'v': 'V1', 'w': 1}, {'v': 'V5', 'w': 2}]}, 'V3': {'p': 0, 'e': [{'v': 'V1', 'w': 4}, {'v':
+ 'V4', 'w': 8}]}, 'V4': {'p': 0, 'e': [{'v': 'V3', 'w': 8}, {'v': 'V5', 'w': 1}]}, 'V5': {'p': 0, 'e': [{'v': 'V4', 'w': 1}, {'v': 'V2', 'w': 2}, {'v': 'V6', 'w': 7}]}, 'V6': {'p': 0, 'e': [{'v': 'V5', 'w': 7}]}}
+    graph = {'V1': {'p': 0, 'e': [{'v': 'V2', 'w': 1}, {'v': 'V3', 'w': 4}]}, 'V2': {'p': 1, 'e': [{'v': 'V1', 'w': 1}, {'v': 'V5', 'w': 2}]}, 'V3': {'p': 2, 'e': [{'v': 'V1', 'w': 4}, {'v': 'V4', 'w': 8}]}, 'V4': {'p': 0, 'e': [{'v': 'V3', 'w': 8}, {'v': 'V5', 'w': 1}]}, 'V5': {'p': 0, 'e': [{'v': 'V4', 'w': 1}, {'v': 'V2', 'w': 2}, {'v': 'V6', 'w': 7}]}, 'V6': {'p': 3, 'e': [{'v': 'V5', 'w': 7}]}}
     #graph = {'V1': {'p': 0, 'e': [{'v': 'V2', 'w': 1}, {'v': 'V3', 'w': 4}]}, 'V2': {'p': 1, 'e': [{'v': 'V1', 'w': 1}, {'v': 'V5', 'w': 2}]}, 'V3': {'p': 2, 'e': [{'v': 'V1', 'w': 4}, {'v': 'V4', 'w': 8}]}, 'V4': {'p': 0, 'e': [{'v': 'V3', 'w': 8}, {'v': 'V5', 'w': 1}]}, 'V5': {'p': 0, 'e': [{'v': 'V4', 'w': 1}, {'v': 'V2', 'w': 2}, {'v': 'V6', 'w': 7}]}, 'V6': {'p': 3, 'e': [{'v': 'V5', 'w': 7}]}}
 
-    minmax(graph,None,'V1','V4',4)
+    path = minimax(graph,'V1','V4',4,'m1')
+    print('A path:',path)
     
-def dfs(node,graph,typeOfGame):
+def dfs(node,graph,typeOfGame,alpha,beta):
+    global numOfNodes
     if node.sons == []:
+        numOfNodes += 1
         node.scores = minimaxHeur(graph,node)
-        print('leaf: ',node)
+        print('leaf: ',node, "numOf nodes= ",numOfNodes)
+        return node.scores
     else:
-        for i in node.sons:
-            dfs(i,graph,typeOfGame)
-        if typeOfGame ==  1: #TODO add pruning
-            minmaxScores = node.sons[0].scores
-            for j in range(1,len(node.sons)):
-                if node.myTurn:
-                    if node.sons[j].scores[0] - node.sons[j].scores[1] > minmaxScores[0] - minmaxScores[1]:
-                        minmaxScores = node.sons[j].scores
-                else:
-                    if node.sons[j].scores[1] - node.sons[j].scores[0] > minmaxScores[1] - minmaxScores[0]:
-                        minmaxScores = node.sons[j].scores
-            node.scores = minmaxScores
-            print('\n',node)
+        if typeOfGame ==  'm1':
+            if node.myTurn:
+                minmaxScores = None
+                value = -sys.maxsize
+                for i in node.sons:
+                    currScores = dfs(i,graph,typeOfGame,alpha,beta)
+                    if value < currScores[0]-currScores[1]:
+                        value = currScores[0]-currScores[1]
+                        minmaxScores = currScores
+                    alpha = max(alpha,value)
+                    if alpha >= beta:
+                        break
+                node.scores = minmaxScores
 
-        elif typeOfGame ==  2:
+            else:
+                minmaxScores = None
+                value = sys.maxsize
+
+                for i in node.sons:
+                    currScores = dfs(i,graph,typeOfGame,alpha,beta)
+                    if value > currScores[0]-currScores[1]:
+                        value = currScores[0]-currScores[1]
+                        minmaxScores = currScores
+                    beta = min(beta,value)
+                    if beta <= alpha:
+                        break
+                node.scores = minmaxScores
+            numOfNodes += 1
+            print(node,'count: ',numOfNodes)
+            return node.scores
+
+        elif typeOfGame ==  'm2':       
+            for i in node.sons:
+                dfs(i,graph,typeOfGame,0,0)
             minmaxScores = node.sons[0].scores
             for j in range(1,len(node.sons)):
                 if node.myTurn:
@@ -101,9 +130,8 @@ def dfs(node,graph,typeOfGame):
                     elif node.sons[j].scores[0] == minmaxScores[0]:
                         if node.sons[j].scores[1] > minmaxScores[1]:
                             minmaxScores=node.sons[j].scores
-                        # node.sons[j].scores[0] == minmaxScores[0]
                 else:
-                    if node.sons[j].scores[1] < minmaxScores[1]:
+                    if node.sons[j].scores[1] > minmaxScores[1]:
                         minmaxScores=node.sons[j].scores
                     elif node.sons[j].scores[1] == minmaxScores[1]:
                         if node.sons[j].scores[0] > minmaxScores[0]:
@@ -111,7 +139,9 @@ def dfs(node,graph,typeOfGame):
             node.scores = minmaxScores
             print(node)
 
-        else:
+        else: 
+            for i in node.sons:
+                dfs(i,graph,typeOfGame,0,0)
             minmaxScores = node.sons[0].scores
             for j in range(1,len(node.sons)):
                 if node.sons[j].scores[0] + node.sons[j].scores[1] > minmaxScores[0] + minmaxScores[1]:

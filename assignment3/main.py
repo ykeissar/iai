@@ -42,8 +42,98 @@ def main():
 
 
     persistence = float(flines[-1][1])
-    print(graph,'\nPers:',persistence)
-    printBayesNetwork(graph,1)
+    #print(graph,'\nPers:',persistence)
+    # printBayesNetwork(graph,2)
+    # print(enumerationAsk(graph,'V1 V2 4',[]))    
+    evidence = []
+    while True:
+        print("Evidence: "+str(evidence))
+        inp = input('Enter your choice: ')
+        if inp == 'quit':
+            break
+        elif inp == 'reset':
+            evidence=[]
+        elif inp[:3] == 'add':# "add V1 V2 3" => (1,2) is blocked at time 3,"add V1" -v1 has ppl, "add not V3","add not V1 V5 0" => (1,5) isnt blocked
+            evidence.append(inp[4:])
+        else:   #pr1 - all vertices has ppl; pr2 - all edges blocked;; pr3- certain path isnt blocked; pr4-;
+            if inp[2] == '1':
+                printVertices(graph,evidence)
+            if inp[2] == '2':
+                printEdges(graph,evidence,int(inp.split()[1]))
+
+
+#maybe need to add normalization
+def enumerationAsk(graph,q,e): #q = Vi  | q = Vi Vj
+    time = q.split(' ')[2] if len(q.split(' '))>1 else 0
+    return (enumerateAll(graph,constructVars(graph, int(time)),e + [q]),
+                enumerateAll(graph,constructVars(graph, int(time)),e + ['not ' + q]))
+
+def enumerateAll(graph,vars,e):
+    if not vars:
+        return 1.0
+    y = vars[0]
+    # print('ea('+str(vars)+','+str(e)+')')
+    if y in e or 'not '+y in e:
+        pIndex = 0 if y in e else 1
+        # print('y:'+y+' in e')
+        splited = y.split(' ')
+        if len(splited) == 1 :
+            p = calcP(graph, splited[0], '', 0, parents(y), False)[pIndex]
+            # print(str(p)+' * EnumAll('+str(vars[1:])+','+str(e)+')')
+            s = p * enumerateAll(graph,vars[1:],e)
+            # print(s)
+            return s
+
+        p = calcP(graph, splited[0],splited[1],int(splited[2]),parents(y),True)[pIndex]
+        # print(str(p)+' * EnumAll('+str(vars[1:])+','+str(e)+')')
+        s1 = calcP(graph, splited[0],splited[1],int(splited[2]),parents(y),True)[pIndex] * enumerateAll(graph,vars[1:],e)
+        # print(s1)
+        return s1
+    else:
+        # print('y:'+y+' not in e')
+        splited = y.split(' ')
+        if len(splited) == 1 :
+            p1 = calcP(graph, splited[0], '', 0, parents(y), False)[0]
+            p2 = calcP(graph, splited[0], '', 0, parents(y), False)[1]
+            # print(str(p1)+' * EnumAll('+str(vars[1:])+','+str(e+[y])+')')
+            # print(str(p2)+' * EnumAll('+str(vars[1:])+','+str(e+['not '+y])+')')
+            s1 = (calcP(graph, splited[0], '', 0, parents(y), False)[0] * enumerateAll(graph,vars[1:],e+[y])+
+                    calcP(graph, splited[0], '', 0, parents(y), False)[1] * enumerateAll(graph,vars[1:],e+['not '+y]))
+            # print(s1)
+            return s1
+        p1 = calcP(graph, splited[0],splited[1],int(splited[2]),parents(y),True)[0]
+        p2 = calcP(graph, splited[0],splited[1],int(splited[2]),parents(y),True)[1]
+        # print(str(p1)+' * EnumAll('+str(vars[1:])+','+str(e+[y])+')')
+        # print(str(p2)+' * EnumAll('+str(vars[1:])+','+str(e+['not '+y])+')')
+
+        s1 = (calcP(graph, splited[0],splited[1],int(splited[2]),parents(y),True)[0] * enumerateAll(graph,vars[1:],e+[y])+
+                calcP(graph, splited[0],splited[1],int(splited[2]),parents(y),True)[1] * enumerateAll(graph,vars[1:],e+['not '+y]))
+        # print(s1)
+        return s1
+    
+
+
+def parents(query):
+    q = query.split(' ')
+    if len(q) == 1:
+        return []
+    elif q[2] == '0':
+        return [q[0],q[1]]
+    else:
+        return [q[0]+ ' ' + q[1] + ' ' + str(int(q[2])-1)] 
+
+def constructVars(graph,t):
+    vars = []
+    tn = 0
+    for key in (list(graph.keys())):
+        if key != 'Edges':
+            vars.append(key)
+        else:
+            while(tn<=t):
+                for e in graph['Edges']:
+                    vars.append(e['from'] +' '+e['to'] + ' '+ str(tn))
+                tn += 1
+    return vars
 
 # query: "V1", "V2", 
 # evidence: ["V1","not V2"]
@@ -64,8 +154,27 @@ def calcP(graph,query1,query2,time,evidence,isEdge):
             else:
                 return round(0.6/getEdgeWeight(graph,query1,query2),15),1-(round(0.6/getEdgeWeight(graph,query1,query2),15))                   
         else:
-            return persistence if not (len(evidence[0]) > 3 and evidence[0][:3] == 'not') else 0.001
-     
+            return (persistence,1-persistence) if not (len(evidence[0]) > 3 and evidence[0][:3] == 'not') else (0.001,0.999)
+
+def printVertices(graph,evidence):
+    for i in range(len(graph)-1):
+        print('VERTEX',str(i+1)+':')
+        if list(graph.keys())[i] not in evidence and 'not '+list(graph.keys())[i] not in evidence:
+            (p,notP) = calcP(graph,list(graph.keys())[i],'',0,[],False)
+        else:
+            (p,notP) = (1.0,0.0) if list(graph.keys())[i] in evidence else (0.0,1.0)
+        print('\tP(Evacuees {0})={1}\n\tP(not Evacuees {0})={2}'.format(i+1,p,notP))
+
+def printEdges(graph,evidence,time):
+    for e in graph['Edges']:
+        q = e['from']+' '+e['to']+" " +str(time)
+        if q not in evidence and 'not '+q not in evidence:
+            (p,notP) = enumerationAsk(graph,q,evidence)
+        else:
+            (p,notP) = (1.0,0.0) if q in evidence else (0.0,1.0)
+        print('P(Blocakge {0},{1}) ={2}'.format(e['e'],time,p))
+                 
+
 def printBayesNetwork(graph,timeLimit):
     for i in range(len(graph)-1):
         print('VERTEX',str(i+1)+':')
@@ -73,6 +182,7 @@ def printBayesNetwork(graph,timeLimit):
         print('\tP(Evacuees {0})={1}\n\tP(not Evacuees {0})={2}'.format(i+1,p,notP))
     for i in range(timeLimit):
         for e in graph['Edges']:
+            print('EDGE',str(e['e'])+',','time',i)
             if i == 0:
                 print('P(Blocakge {0}| not Evacuees {1}, not Evacuees {2}) ={3}'.format(e['e'],e['from'],e['to'],
                     calcP(graph,e['from'],e['to'],i,['not '+e['from'],'not '+e['to']],True)[0]))
@@ -82,13 +192,18 @@ def printBayesNetwork(graph,timeLimit):
                     calcP(graph,e['from'],e['to'],i,['not '+e['from'],e['to']],True)[0]))
                 print('P(Blocakge {0}| Evacuees {1}, Evacuees {2}) ={3}'.format(e['e'],e['from'],e['to'],
                     calcP(graph,e['from'],e['to'],i,[e['from'],e['to']],True)[0]))
-                print('\n')
+                
+            else:
+                print('P(B({0},{1})| B({0},{2}))={3}'.format(e['e'],i,i-1,
+                    calcP(graph,e['from'],e['to'],i,[e['from']+" "+e['to']+" "+str(i-1)],True)[0]))
+                print('P(B({0},{1})| not B({0},{2}))={3}'.format(e['e'],i,i-1,
+                    calcP(graph,e['from'],e['to'],i,["not "+e['from']+" "+e['to']+" "+str(i-1)],True)[0]))
+            print('\n')
+
 #                  P(Blocakge 1 | not Evacuees 1, not Evacuees 2) = 0.001
 #   P(Blocakge 1 | Evacuees 1, not Evacuees 2) = 0.6
 #   P(Blocakge 1 | not Evacuees 1, Evacuees 2) = 0.6
 #   P(Blocakge 1 | Evacuees 1, Evacuees 2) = 0.84
-
-
     
 def allTerminated(agentsList):
     for i in agentsList:
